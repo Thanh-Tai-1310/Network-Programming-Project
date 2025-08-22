@@ -32,11 +32,11 @@
 
 3. **Chạy ứng dụng:**
    ```bash
-   python server.py
+  python -u "c:\Users\Admin\Desktop\testing\Network-Programming-Project\server.py"
    ```
    
    ```bash
-   python db_init.py
+    & C:\Users\Admin\AppData\Local\Programs\Python\Python313\python.exe c:/Users/Admin/Desktop/testing/Network-Programming-Project/db_init.py
    ```
    
 5. **Truy cập giao diện web:**
