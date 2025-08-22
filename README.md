@@ -31,8 +31,13 @@
    ```
 
 3. **Chạy ứng dụng:**
-   Run code server.py
-   Run python File in Terminal db_init.py
+   ```bash
+   python server.py
+   ```
    
-4. **Truy cập giao diện web:**
+   ```bash
+   python db_init.py
+   ```
+   
+5. **Truy cập giao diện web:**
    Mở trình duyệt và truy cập `http://localhost:8080`.
