@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Ứng dụng nhắn tin</title>
+<style>
+  body { font-family: sans-serif; max-width: 800px; margin: auto; }
+  #messages { border:1px solid #ddd; height:300px; overflow:auto; padding:6px; }
+  #messages .me { text-align:right; background:#cce5ff; margin:4px; padding:6px; border-radius:10px; }
+  #messages .them { text-align:left; background:#f1f1f1; margin:4px; padding:6px; border-radius:10px; }
+  #messages .info { text-align:center; color:gray; margin:4px; font-style:italic; }
+</style>
+</head>
+<body>
+<h2>Ứng dụng nhắn tin</h2>
+
+<input id="name" placeholder="Nhập Tên Của Bạn">
+<button id="connectBtn">Kết nối</button>
+<div id="status"></div>
+
+<div id="messages"></div>
+
+<input id="text" placeholder="Nhập tin..." style="width:93.5%">
+<button id="sendText">Gửi</button>
+
+<h3>Voice message</h3>
+<button id="recBtn">🎙️ Bắt đầu ghi</button> <span id="recStatus"></span>
+
+<h3>Call</h3>
+<button id="callBtn">📞 Gọi</button>
+<button id="hangupBtn" disabled>📴 Kết thúc</button>
+<button id="muteBtn" disabled>🔇 Mute</button>
+
+<div id="peers"></div>
+
+<script>
+const ws = new WebSocket(`ws://${location.host}/ws`);
+let username, pc, localStream, mediaRecorder, chunks=[];
+let isMuted=false;
+
+function appendMsg(html, who="info") {
+  const div = document.createElement('div');
+  div.className = who;
+  div.innerHTML = html;
+  document.getElementById('messages').appendChild(div);
+  document.getElementById('messages').scrollTop = messages.scrollHeight;
+}
+
+ws.onmessage = async (ev)=>{
+  let msg; try { msg=JSON.parse(ev.data); } catch{ return; }
+  if (msg.type==="auth_ok"){ appendMsg("Bạn đã kết nối","info"); return; }
+  if (msg.type==="join"){ appendMsg(`${msg.username} tham gia`,"info"); return; }
+  if (msg.type==="leave"){ appendMsg(`${msg.username} rời đi`,"info"); return; }
+
+  if (msg.type==="message"){
+    const side = msg.sender===username ? "me":"them";
+    if (msg.mtype==="text") appendMsg(`<b>${msg.sender}:</b> ${msg.content}`, side);
+    else if (msg.mtype==="voice"){
+      const a = `<audio controls src="/uploads/${msg.content}"></audio>`;
+      appendMsg(`<b>${msg.sender} gửi voice:</b><br>${a}`, side);
+    } else if (msg.mtype==="file"){
+      appendMsg(`<b>${msg.sender} gửi file:</b> <a href="/uploads/${msg.content}" target="_blank">${msg.filename}</a>`, side);
+    }
+  }
+
+  // --- Call flow ---
+  if (msg.type==="call-invite"){
+    if (msg.from!==username){
+      if (confirm(`${msg.from} đang gọi bạn`)){
+        ws.send(JSON.stringify({type:"call-accept"}));
+        startWebRTC(true);
+        appendMsg(`Bạn đã nhận cuộc gọi từ ${msg.from}`,"them");
+      } else {
+        ws.send(JSON.stringify({type:"call-reject"}));
+        appendMsg(`Bạn đã từ chối cuộc gọi từ ${msg.from}`,"them");
+      }
+    }
+  }
+  if (msg.type==="call-accept" && msg.from!==username){
+    appendMsg(`${msg.from} đã chấp nhận cuộc gọi`,"them");
+    startWebRTC(false);
+  }
+  if (msg.type==="call-reject" && msg.from!==username){
+    appendMsg(`${msg.from} đã từ chối cuộc gọi`,"them");
+  }
+  if (msg.type==="call-end"){
+    endCallLocal();
+    appendMsg("Cuộc gọi đã kết thúc","info");
+  }
+
+  // --- WebRTC ---
+  if (msg.type==="webrtc-offer" && msg.from!==username){
+    await ensurePeer();
+    await pc.setRemoteDescription(new RTCSessionDescription(msg.offer));
+    const ans=await pc.createAnswer();
+    await pc.setLocalDescription(ans);
+    ws.send(JSON.stringify({type:"webrtc-answer", answer:ans}));
+  }
+  if (msg.type==="webrtc-answer" && msg.from!==username){
+    await pc.setRemoteDescription(new RTCSessionDescription(msg.answer));
+  }
+  if (msg.type==="webrtc-ice" && msg.from!==username){
+    if (pc && msg.candidate) await pc.addIceCandidate(new RTCIceCandidate(msg.candidate));
+  }
+};
+
+document.getElementById("connectBtn").onclick=()=>{
+  username=document.getElementById("name").value.trim();
+  ws.send(JSON.stringify({type:"auth",username}));
+};
+document.getElementById("sendText").onclick=()=>{
+  const t=document.getElementById("text").value;
+  ws.send(JSON.stringify({type:"text",text:t}));
+  document.getElementById("text").value="";
+};
+document.getElementById("recBtn").onclick=async ()=>{
+  if (!mediaRecorder || mediaRecorder.state==="inactive"){
+    const st=await navigator.mediaDevices.getUserMedia({audio:true});
+    mediaRecorder=new MediaRecorder(st);
+    chunks=[];
+    mediaRecorder.ondataavailable=e=>chunks.push(e.data);
+    mediaRecorder.onstop=async ()=>{
+      const blob=new Blob(chunks,{type:"audio/webm"});
+      const buf=await blob.arrayBuffer();
+      const meta={filename:`voice_${Date.now()}.webm`, sender:username, mtype:"voice"};
+      const m=new TextEncoder().encode(JSON.stringify(meta));
+      const head=new Uint8Array(4); new DataView(head.buffer).setUint32(0,m.length,false);
+      const all=new Uint8Array(4+m.length+buf.byteLength);
+      all.set(head,0); all.set(m,4); all.set(new Uint8Array(buf),4+m.length);
+      ws.send(all);
+    };
+    mediaRecorder.start(); document.getElementById("recBtn").innerText="⏹ Dừng & gửi";
+  } else { mediaRecorder.stop(); document.getElementById("recBtn").innerText="🎙 Bắt đầu ghi"; }
+};
+
+// Call
+document.getElementById("callBtn").onclick=()=>{
+  ws.send(JSON.stringify({type:"call-invite"}));
+  appendMsg("Bạn đang gọi...","me");
+};
+document.getElementById("hangupBtn").onclick=()=>{
+  ws.send(JSON.stringify({type:"call-end"}));
+  endCallLocal();
+};
+
+async function ensurePeer(){
+  if (pc) return;
+  pc=new RTCPeerConnection();
+  pc.ontrack=(e)=>{
+    const a=document.createElement("audio"); a.autoplay=true; a.srcObject=e.streams[0];
+    document.getElementById("peers").appendChild(a);
+  };
+  pc.onicecandidate=(e)=>{ if (e.candidate) ws.send(JSON.stringify({type:"webrtc-ice",candidate:e.candidate})); };
+  if (!localStream) localStream=await navigator.mediaDevices.getUserMedia({audio:true});
+  localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));
+  document.getElementById("hangupBtn").disabled=false;
+  document.getElementById("muteBtn").disabled=false;
+}
+async function startWebRTC(isAnswer){
+  await ensurePeer();
+  if (!isAnswer){
+    const offer=await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    ws.send(JSON.stringify({type:"webrtc-offer", offer}));
+  }
+}
+function endCallLocal(){
+  if (pc){ pc.close(); pc=null; }
+  if (localStream){ localStream.getTracks().forEach(t=>t.stop()); localStream=null; }
+  document.getElementById("peers").innerHTML="";
+  document.getElementById("hangupBtn").disabled=true;
+  document.getElementById("muteBtn").disabled=true;
+}
+document.getElementById("muteBtn").onclick=()=>{
+  if (!localStream) return;
+  isMuted=!isMuted;
+  localStream.getTracks().forEach(t=>t.enabled=!isMuted);
+  document.getElementById("muteBtn").innerText=isMuted?"🔊 Unmute":"🔇 Mute";
+};
+</script>
+</body>
+</html>
