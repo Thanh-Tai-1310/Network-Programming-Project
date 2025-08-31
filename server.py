@@ -1,4 +1,5 @@
 import asyncio
+import mimetypes
 import json
 import sqlite3
 import hashlib
@@ -16,6 +17,10 @@ def get_conn():
 
 def hash_password(pw: str) -> str:
     return hashlib.sha256(pw.encode('utf-8')).hexdigest()
+
+def is_image_file(filename):
+    image_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg'}
+    return Path(filename).suffix.lower() in image_extensions
 
 clients = set()  # set of (ws, username)
 
@@ -124,6 +129,8 @@ async def websocket_handler(request):
                 filename = meta.get("filename", "file.bin")
                 sender = meta.get("sender", username or "anon")
                 declared_type = meta.get("mtype", "file")
+                if declared_type == "file" and is_image_file(filename):
+                declared_type = "image"
 
                 safe_name = f"{int(asyncio.get_event_loop().time()*1000)}_{Path(filename).name}"
                 save_path = UPLOAD_DIR / safe_name
