@@ -3,37 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <title>Ứng dụng nhắn tin</title>
-<style>
-  body { font-family: sans-serif; max-width: 800px; margin: auto; }
-  #messages { border:1px solid #ddd; height:300px; overflow:auto; padding:6px; }
-  #messages .me { text-align:right; background:#cce5ff; margin:4px; padding:6px; border-radius:10px; }
-  #messages .them { text-align:left; background:#f1f1f1; margin:4px; padding:6px; border-radius:10px; }
-  #messages .info { text-align:center; color:gray; margin:4px; font-style:italic; }
-</style>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<h2>Ứng dụng nhắn tin</h2>
+  <div class="main-container">
+    <h2>Ứng dụng nhắn tin</h2>
 
-<input id="name" placeholder="Nhập Tên Của Bạn">
-<button id="connectBtn">Kết nối</button>
-<div id="status"></div>
+    <input id="name" placeholder="Nhập Tên Của Bạn">
+    <button id="connectBtn">Kết nối</button>
+    <div id="status"></div>
 
-<div id="messages"></div>
+    <div id="messages"></div>
 
-<input id="text" placeholder="Nhập tin..." style="width:93.5%">
-<button id="sendText">Gửi</button>
+    <input id="text" placeholder="Nhập tin..." style="width:93.5%">
+    <button id="sendText">Gửi</button>
 
-<h3>Voice message</h3>
-<button id="recBtn">🎙️ Bắt đầu ghi</button> <span id="recStatus"></span>
+    <h3>Voice message</h3>
+    <button id="recBtn">🎙️ Bắt đầu ghi</button> <span id="recStatus"></span>
 
-<h3>Call</h3>
-<button id="callBtn">📞 Gọi</button>
-<button id="hangupBtn" disabled>📴 Kết thúc</button>
-<button id="muteBtn" disabled>🔇 Mute</button>
+    <h3>Call</h3>
+    <button id="callBtn">📞 Gọi</button>
+    <button id="hangupBtn" disabled>📴 Kết thúc</button>
+    <button id="muteBtn" disabled>🔇 Mute</button>
 
-<div id="peers"></div>
-
-<script>
+    <div id="peers"></div>
+  </div>
+  <script>
 const ws = new WebSocket(`ws://${location.host}/ws`);
 let username, pc, localStream, mediaRecorder, chunks=[];
 let isMuted=false;
@@ -177,6 +172,6 @@ document.getElementById("muteBtn").onclick=()=>{
   localStream.getTracks().forEach(t=>t.enabled=!isMuted);
   document.getElementById("muteBtn").innerText=isMuted?"🔊 Unmute":"🔇 Mute";
 };
-</script>
+  </script>
 </body>
 </html>
