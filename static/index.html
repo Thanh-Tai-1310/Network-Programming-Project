@@ -1,177 +1,453 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Ứng dụng nhắn tin</title>
-<link rel="stylesheet" href="styles.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💬 Chat App</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>">
+<style>
+/* Reset & base */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Main app container */
+.main-container {
+  width: 450px;
+  max-width: 95vw;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3), 0 6px 20px rgba(0,0,0,0.1);
+  padding: 30px 28px 20px 28px;
+  margin: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Header */
+h2 {
+  text-align: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 15px 0;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+/* Login/Chat sections */
+#login, #chat {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Status bar */
+.status {
+  text-align: center;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  margin: 4px 0;
+  min-height: 20px;
+}
+
+.status.success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.status.error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.status.info {
+  background: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+/* Inputs */
+input[type="text"], input[type="password"] {
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 2px solid #e1e5e9;
+  margin: 6px 0;
+  width: 100%;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  outline: none;
+  background: #f8f9fa;
+  font-family: inherit;
+}
+
+input:focus {
+  border-color: #667eea;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  transform: translateY(-1px);
+}
+
+input[type="file"] {
+  padding: 12px;
+  border-radius: 12px;
+  border: 2px dashed #667eea;
+  background: #f8f9ff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  font-size: 14px;
+}
+
+input[type="file"]:hover {
+  background: #eef2ff;
+  border-color: #5a6fd8;
+}
+
+/* Buttons */
+button {
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+  margin: 4px 0;
+  font-family: inherit;
+}
+
+button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+button:disabled {
+  background: #ccc;
+  color: #888;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Special button colors */
+#recBtn {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+#recBtn:hover {
+  background: linear-gradient(135deg, #20c997 0%, #28a745 100%);
+}
+
+/* Messages area */
+#messages {
+  height: 380px;
+  overflow-y: auto;
+  border: 2px solid #e9ecef;
+  padding: 20px 16px;
+  margin: 12px 0;
+  background: #f8f9fa;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
+  scroll-behavior: smooth;
+}
+
+  width: 6px;
+}
+
+#messages::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+#messages::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+#messages::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+/* Message bubbles */
+.message {
+  display: flex;
+  flex-direction: column;
+  margin: 8px 0;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message.me {
+  align-items: flex-end;
+}
+
+.message.other {
+  align-items: flex-start;
+}
+
+.message .meta {
+  font-size: 12px;
+  color: #6c757d;
+  margin-bottom: 6px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.message .text {
+  padding: 12px 18px;
+  border-radius: 18px;
+  font-size: 15px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+  word-break: break-word;
+  max-width: 75%;
+  display: inline-block;
+  line-height: 1.4;
+  position: relative;
+}
+
+.message.me .text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+}
+
+.message.other .text {
+  background: #fff;
+  color: #333;
+  border: 1px solid #e9ecef;
+}
+
+.message .file {
+  color: #667eea;
+  text-decoration: none;
+  padding: 10px 16px;
+  background: #f8f9ff;
+  border: 1px solid #e6ebff;
+  border-radius: 12px;
+  display: inline-block;
+  margin-top: 6px;
+  max-width: 75%;
+  transition: all 0.3s ease;
+}
+
+.message .file:hover {
+  background: #eef2ff;
+  border-color: #667eea;
+}
+
+.message img {
+  max-width: 300px;
+  max-height: 200px;
+  border-radius: 12px;
+  margin-top: 6px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.message img:hover {
+  transform: scale(1.02);
+}
+
+.system {
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 20px;
+  margin: 12px auto;
+  max-width: 80%;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+/* User info */
+#me {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 12px;
+  font-size: 16px;
+}
+
+/* Input groups */
+.input-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.input-group input {
+  flex: 1;
+  margin: 0;
+}
+
+.input-group button {
+  margin: 0;
+  min-width: 90px;
+  flex-shrink: 0;
+}
+
+/* Login messages */
+#loginMsg {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  min-height: 20px;
+  padding: 8px;
+}
+
+/* Voice recording status */
+#recStatus {
+  color: #dc3545;
+  font-weight: 600;
+  font-size: 14px;
+  margin-left: 10px;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Audio elements */
+audio {
+  width: 100%;
+  max-width: 300px;
+  margin-top: 8px;
+  border-radius: 12px;
+  background: #f8f9fa;
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+  .main-container {
+    width: 95vw;
+    padding: 20px 16px;
+    margin: 10px;
+  }
+  
+  h2 {
+    font-size: 24px;
+  }
+  
+  #messages {
+    height: 300px;
+    padding: 16px 12px;
+  }
+  
+  .message .text {
+    max-width: 85%;
+    font-size: 14px;
+  }
+  
+  .message img {
+    max-width: 260px;
+  }
+  
+  .input-group {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .input-group button {
+    min-width: auto;
+    width: 100%;
+  }
+}
+
+/* Focus states */
+button:focus, input:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+</style>
 </head>
 <body>
   <div class="main-container">
-    <h2>Ứng dụng nhắn tin</h2>
+    <h2>💬 Chat App</h2>
+    
+    <!-- Status bar -->
+    <div id="status" class="status"></div>
 
-    <input id="name" placeholder="Nhập Tên Của Bạn">
-    <button id="connectBtn">Kết nối</button>
-    <div id="status"></div>
+    <!-- Login Section -->
+    <div id="login">
+      <input type="text" id="username" placeholder="Username (min 3 chars)">
+      <input type="password" id="password" placeholder="Password (min 6 chars)">
+      <button id="btnLogin">🚀 Login</button>
+      <button id="btnRegister">📝 Register</button>
+      <div id="loginMsg" class="status"></div>
+    </div>
 
-    <div id="messages"></div>
+    <!-- Chat Section -->
+    <div id="chat" style="display: none;">
+      <div id="me"></div>
+      <button id="btnLogout">🚪 Logout</button>
+      
+      <div id="messages"></div>
 
-    <input id="text" placeholder="Nhập tin..." style="width:93.5%">
-    <button id="sendText">Gửi</button>
+      <!-- Text input -->
+      <div class="input-group">
+        <input type="text" id="textInput" placeholder="Type message... (Enter to send)" maxlength="500">
+        <button id="sendText">📤 Send</button>
+      </div>
 
-    <h3>Voice message</h3>
-    <button id="recBtn">🎙️ Bắt đầu ghi</button> <span id="recStatus"></span>
+      <!-- File input -->
+      <div class="input-group">
+        <input type="file" id="fileInput" accept="image/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar" title="Select images, audio, documents or other files">
+        <button id="sendFile">📎 File</button>
+      </div>
 
-    <h3>Call</h3>
-    <button id="callBtn">📞 Gọi</button>
-    <button id="hangupBtn" disabled>📴 Kết thúc</button>
-    <button id="muteBtn" disabled>🔇 Mute</button>
-
-    <div id="peers"></div>
+      <!-- Voice controls -->
+      <div class="input-group">
+        <button id="recBtn">🎙️ Record</button>
+        <span id="recStatus"></span>
+      </div>
+    </div>
   </div>
-  <script>
-const ws = new WebSocket(`ws://${location.host}/ws`);
-let username, pc, localStream, mediaRecorder, chunks=[];
-let isMuted=false;
 
-function appendMsg(html, who="info") {
-  const div = document.createElement('div');
-  div.className = who;
-  div.innerHTML = html;
-  document.getElementById('messages').appendChild(div);
-  document.getElementById('messages').scrollTop = messages.scrollHeight;
-}
-
-ws.onmessage = async (ev)=>{
-  let msg; try { msg=JSON.parse(ev.data); } catch{ return; }
-  if (msg.type==="auth_ok"){ appendMsg("Bạn đã kết nối","info"); return; }
-  if (msg.type==="join"){ appendMsg(`${msg.username} tham gia`,"info"); return; }
-  if (msg.type==="leave"){ appendMsg(`${msg.username} rời đi`,"info"); return; }
-
-  if (msg.type==="message"){
-    const side = msg.sender===username ? "me":"them";
-    if (msg.mtype==="text") appendMsg(`<b>${msg.sender}:</b> ${msg.content}`, side);
-    else if (msg.mtype==="voice"){
-      const a = `<audio controls src="/uploads/${msg.content}"></audio>`;
-      appendMsg(`<b>${msg.sender} gửi voice:</b><br>${a}`, side);
-    } else if (msg.mtype==="file"){
-      appendMsg(`<b>${msg.sender} gửi file:</b> <a href="/uploads/${msg.content}" target="_blank">${msg.filename}</a>`, side);
-    }
-  }
-
-  // --- Call flow ---
-  if (msg.type==="call-invite"){
-    if (msg.from!==username){
-      if (confirm(`${msg.from} đang gọi bạn`)){
-        ws.send(JSON.stringify({type:"call-accept"}));
-        startWebRTC(true);
-        appendMsg(`Bạn đã nhận cuộc gọi từ ${msg.from}`,"them");
-      } else {
-        ws.send(JSON.stringify({type:"call-reject"}));
-        appendMsg(`Bạn đã từ chối cuộc gọi từ ${msg.from}`,"them");
-      }
-    }
-  }
-  if (msg.type==="call-accept" && msg.from!==username){
-    appendMsg(`${msg.from} đã chấp nhận cuộc gọi`,"them");
-    startWebRTC(false);
-  }
-  if (msg.type==="call-reject" && msg.from!==username){
-    appendMsg(`${msg.from} đã từ chối cuộc gọi`,"them");
-  }
-  if (msg.type==="call-end"){
-    endCallLocal();
-    appendMsg("Cuộc gọi đã kết thúc","info");
-  }
-
-  // --- WebRTC ---
-  if (msg.type==="webrtc-offer" && msg.from!==username){
-    await ensurePeer();
-    await pc.setRemoteDescription(new RTCSessionDescription(msg.offer));
-    const ans=await pc.createAnswer();
-    await pc.setLocalDescription(ans);
-    ws.send(JSON.stringify({type:"webrtc-answer", answer:ans}));
-  }
-  if (msg.type==="webrtc-answer" && msg.from!==username){
-    await pc.setRemoteDescription(new RTCSessionDescription(msg.answer));
-  }
-  if (msg.type==="webrtc-ice" && msg.from!==username){
-    if (pc && msg.candidate) await pc.addIceCandidate(new RTCIceCandidate(msg.candidate));
-  }
-};
-
-document.getElementById("connectBtn").onclick=()=>{
-  username=document.getElementById("name").value.trim();
-  ws.send(JSON.stringify({type:"auth",username}));
-};
-document.getElementById("sendText").onclick=()=>{
-  const t=document.getElementById("text").value;
-  ws.send(JSON.stringify({type:"text",text:t}));
-  document.getElementById("text").value="";
-};
-document.getElementById("recBtn").onclick=async ()=>{
-  if (!mediaRecorder || mediaRecorder.state==="inactive"){
-    const st=await navigator.mediaDevices.getUserMedia({audio:true});
-    mediaRecorder=new MediaRecorder(st);
-    chunks=[];
-    mediaRecorder.ondataavailable=e=>chunks.push(e.data);
-    mediaRecorder.onstop=async ()=>{
-      const blob=new Blob(chunks,{type:"audio/webm"});
-      const buf=await blob.arrayBuffer();
-      const meta={filename:`voice_${Date.now()}.webm`, sender:username, mtype:"voice"};
-      const m=new TextEncoder().encode(JSON.stringify(meta));
-      const head=new Uint8Array(4); new DataView(head.buffer).setUint32(0,m.length,false);
-      const all=new Uint8Array(4+m.length+buf.byteLength);
-      all.set(head,0); all.set(m,4); all.set(new Uint8Array(buf),4+m.length);
-      ws.send(all);
-    };
-    mediaRecorder.start(); document.getElementById("recBtn").innerText="⏹ Dừng & gửi";
-  } else { mediaRecorder.stop(); document.getElementById("recBtn").innerText="🎙 Bắt đầu ghi"; }
-};
-
-// Call
-document.getElementById("callBtn").onclick=()=>{
-  ws.send(JSON.stringify({type:"call-invite"}));
-  appendMsg("Bạn đang gọi...","me");
-};
-document.getElementById("hangupBtn").onclick=()=>{
-  ws.send(JSON.stringify({type:"call-end"}));
-  endCallLocal();
-};
-
-async function ensurePeer(){
-  if (pc) return;
-  pc=new RTCPeerConnection();
-  pc.ontrack=(e)=>{
-    const a=document.createElement("audio"); a.autoplay=true; a.srcObject=e.streams[0];
-    document.getElementById("peers").appendChild(a);
-  };
-  pc.onicecandidate=(e)=>{ if (e.candidate) ws.send(JSON.stringify({type:"webrtc-ice",candidate:e.candidate})); };
-  if (!localStream) localStream=await navigator.mediaDevices.getUserMedia({audio:true});
-  localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));
-  document.getElementById("hangupBtn").disabled=false;
-  document.getElementById("muteBtn").disabled=false;
-}
-async function startWebRTC(isAnswer){
-  await ensurePeer();
-  if (!isAnswer){
-    const offer=await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    ws.send(JSON.stringify({type:"webrtc-offer", offer}));
-  }
-}
-function endCallLocal(){
-  if (pc){ pc.close(); pc=null; }
-  if (localStream){ localStream.getTracks().forEach(t=>t.stop()); localStream=null; }
-  document.getElementById("peers").innerHTML="";
-  document.getElementById("hangupBtn").disabled=true;
-  document.getElementById("muteBtn").disabled=true;
-}
-document.getElementById("muteBtn").onclick=()=>{
-  if (!localStream) return;
-  isMuted=!isMuted;
-  localStream.getTracks().forEach(t=>t.enabled=!isMuted);
-  document.getElementById("muteBtn").innerText=isMuted?"🔊 Unmute":"🔇 Mute";
-};
-  </script>
+  <script src="/static/client.js"></script>
 </body>
 </html>
