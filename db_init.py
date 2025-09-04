@@ -4,81 +4,61 @@ from pathlib import Path
 DB = Path("chat.db")
 
 def init_db():
-    """Khởi tạo database với schema đầy đủ"""
+    """Initialize database with basic schema"""
     conn = sqlite3.connect(DB)
     cur = conn.cursor()
     
-    # Tạo bảng users với đầy đủ thông tin
+    # Create users table
     cur.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        last_login TIMESTAMP,
-        is_active BOOLEAN DEFAULT 1
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """)
     
-    # Tạo bảng messages với nhiều loại tin nhắn
+    # Create messages table
     cur.execute("""
     CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         sender TEXT NOT NULL,
-        type TEXT NOT NULL CHECK (type IN ('text', 'file', 'image', 'voice', 'system')),
+        type TEXT NOT NULL CHECK (type IN ('text', 'file', 'image', 'voice')),
         content TEXT NOT NULL,
-        filename TEXT,
-        file_size INTEGER,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (sender) REFERENCES users(username)
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """)
     
-    # Tạo bảng sessions để track user sessions (tùy chọn)
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS sessions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL,
-        session_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        session_end TIMESTAMP,
-        ip_address TEXT,
-        user_agent TEXT,
-        FOREIGN KEY (username) REFERENCES users(username)
-    );
-    """)
-    
-    # Tạo index để tối ưu hiệu suất
+    # Create indexes for performance
     cur.execute("CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender);")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_messages_type ON messages(type);")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);")
     
     conn.commit()
     
-    # Kiểm tra số lượng bảng đã tạo
+    # Check number of tables created
     cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
     tables = cur.fetchall()
     
     conn.close()
     
-    print("=" * 50)
-    print("✅ DATABASE INITIALIZED SUCCESSFULLY")
-    print("=" * 50)
-    print(f"📍 Database location: {DB.absolute()}")
-    print(f"📊 Tables created: {len(tables)}")
+    print("=" * 40)
+    print("✅ DATABASE INITIALIZED")
+    print("=" * 40)
+    print(f"📍 Database: {DB.absolute()}")
+    print(f"📊 Tables: {len(tables)}")
     for table in tables:
         print(f"   - {table[0]}")
-    print("=" * 50)
+    print("=" * 40)
 
 def reset_db():
-    """Xóa và tạo lại database (cẩn thận!)"""
+    """Delete and recreate database (careful!)"""
     if DB.exists():
         DB.unlink()
-        print(f"🗑️  Deleted old database: {DB}")
+        print(f"🗑️ Deleted old database: {DB}")
     init_db()
 
 def check_db():
-    """Kiểm tra trạng thái database"""
+    """Check database status"""
     if not DB.exists():
         print(f"❌ Database not found: {DB}")
         return False
@@ -86,29 +66,29 @@ def check_db():
     conn = sqlite3.connect(DB)
     cur = conn.cursor()
     
-    # Đếm users
+    # Count users
     cur.execute("SELECT COUNT(*) FROM users")
     user_count = cur.fetchone()[0]
     
-    # Đếm messages
+    # Count messages
     cur.execute("SELECT COUNT(*) FROM messages")
     message_count = cur.fetchone()[0]
     
-    # Lấy message gần nhất
+    # Get latest message
     cur.execute("SELECT sender, type, created_at FROM messages ORDER BY created_at DESC LIMIT 1")
     latest = cur.fetchone()
     
     conn.close()
     
-    print("=" * 50)
+    print("=" * 40)
     print("📊 DATABASE STATUS")
-    print("=" * 50)
+    print("=" * 40)
     print(f"📍 Location: {DB.absolute()}")
-    print(f"👥 Total users: {user_count}")
-    print(f"💬 Total messages: {message_count}")
+    print(f"👥 Users: {user_count}")
+    print(f"💬 Messages: {message_count}")
     if latest:
-        print(f"🕒 Latest message: {latest[0]} ({latest[1]}) at {latest[2]}")
-    print("=" * 50)
+        print(f"🕒 Latest: {latest[0]} ({latest[1]}) at {latest[2]}")
+    print("=" * 40)
     
     return True
 
@@ -119,7 +99,7 @@ if __name__ == "__main__":
         command = sys.argv[1].lower()
         
         if command == "reset":
-            confirm = input("⚠️  This will DELETE all data. Continue? (yes/no): ")
+            confirm = input("⚠️ This will DELETE all data. Continue? (yes/no): ")
             if confirm.lower() == "yes":
                 reset_db()
             else:
