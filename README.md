@@ -1,23 +1,25 @@
 # Messaging App
 
-Đây là dự án "Messaging App" – một ứng dụng nhắn tin thời gian thực, được xây dựng nhằm mục tiêu học tập và thực hành lập trình mạng. Ứng dụng hỗ trợ giao tiếp giữa các người dùng thông qua giao diện web hiện đại, sử dụng các công nghệ Python, HTML, JavaScript và CSS.
+Đây là dự án "Messaging App" được phát triển bởi [Thanh-Tai-1310](https://github.com/Thanh-Tai-1310). Ứng dụng hỗ trợ nhắn tin theo thời gian thực với giao diện thân thiện và dễ sử dụng.
 
-## Tính năng chính
+## Tính năng nổi bật
 
-- **Nhắn tin thời gian thực:** Cho phép người dùng gửi và nhận tin nhắn ngay lập tức.
-- **Đăng nhập:** Hỗ trợ xác thực người dùng để đảm bảo quyền riêng tư.
-- **Giao diện web thân thiện:** Thiết kế responsive phù hợp trên mọi thiết bị.
-- **Thông báo trực tuyến:** Hiển thị trạng thái hoạt động của người dùng.
-- **Bảo mật cơ bản:** Mã hóa thông tin đăng nhập và tin nhắn.
+- Đăng ký, đăng nhập người dùng
+- Chat 1-1 và chat nhóm
+- Gửi/nhận tin nhắn theo thời gian thực
+- Quản lý danh bạ bạn bè
+- Giao diện web hiện đại, responsive
+- Hỗ trợ gửi file, hình ảnh (nếu có)
+- Thông báo tin nhắn mới
 
 ## Công nghệ sử dụng
 
-- **Backend:** Python (có thể sử dụng Flask/Django, Socket.IO hoặc các thư viện lập trình mạng khác)
-- **Frontend:** HTML, CSS, JavaScript
-- **Realtime Communication:** WebSocket (Socket.IO)
-- **Cơ sở dữ liệu:** (Tuỳ chọn, bổ sung nếu bạn sử dụng, ví dụ: SQLite, PostgreSQL...)
+- **Backend:** Python (có thể sử dụng Flask/Django, Socket, ... tuỳ cấu trúc repo)
+- **Frontend:** JavaScript, HTML, CSS
+- **Giao tiếp thời gian thực:** WebSocket/Socket.IO
+- **Cơ sở dữ liệu:** (tuỳ chọn, ví dụ: SQLite, MongoDB, PostgreSQL...)
 
-## Cách cài đặt và chạy ứng dụng
+## Cài đặt và chạy thử
 
 1. **Clone repository:**
    ```bash
@@ -25,19 +27,44 @@
    cd Network-Programming-Project
    ```
 
-2. **Cài đặt các thư viện cần thiết:**
+2. **Cài đặt các phụ thuộc:**
+   (Tùy theo backend, ví dụ với Python)
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Chạy ứng dụng:**
+3. **Khởi động server:**
    ```bash
    python server.py
    ```
-   
-   ```bash
-   python db_init.py
-   ```
-   
-5. **Truy cập giao diện web:**
-   Mở trình duyệt và truy cập `http://localhost:8080`.
+
+4. **Truy cập ứng dụng:**
+   Mở trình duyệt và truy cập `http://localhost:PORT` (PORT tuỳ thuộc cấu hình)
+
+## Cấu trúc thư mục (ví dụ)
+
+```
+Network-Programming-Project/
+├── server.py
+├── requirements.txt
+├── static/
+│   ├── js/
+│   ├── css/
+│   └── images/
+├── templates/
+│   └── *.html
+├── README.md
+└── ...
+```
+
+## Đóng góp
+
+Chúng tôi hoan nghênh mọi đóng góp! Vui lòng tạo pull request hoặc issue nếu bạn muốn đóng góp hoặc báo lỗi.
+
+## Tác giả
+
+- **Thanh-Tai-1310** - [GitHub](https://github.com/Thanh-Tai-1310)
+
+---
+
+> *Vui lòng cập nhật README này nếu có thay đổi về chức năng hoặc cấu trúc dự án.*
