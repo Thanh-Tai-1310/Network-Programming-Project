@@ -44,6 +44,7 @@ def init_db():
     
     conn.commit()
     conn.close()
+    print("Database initialized successfully")
 
 def get_conn():
     return sqlite3.connect(DB_PATH)
@@ -55,11 +56,17 @@ def is_image_file(filename):
     image_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg'}
     return Path(filename).suffix.lower() in image_extensions
 
+def is_audio_file(filename):
+    audio_extensions = {'.mp3', '.wav', '.webm', '.ogg', '.m4a', '.aac'}
+    return Path(filename).suffix.lower() in audio_extensions
+
 clients = set()  # set of (ws, username)
 
 async def broadcast_json(obj, exclude_ws=None):
-    data = json.dumps(obj)
+    """Broadcast JSON message to all connected clients"""
+    data = json.dumps(obj, ensure_ascii=False)
     disconnected = []
+    
     for ws, username_client in list(clients):
         if ws.closed:
             disconnected.append((ws, username_client))
@@ -69,7 +76,7 @@ async def broadcast_json(obj, exclude_ws=None):
         try:
             await ws.send_str(data)
         except Exception as e:
-            print(f"Error sending to client: {e}")
+            print(f"Error sending to client {username_client}: {e}")
             disconnected.append((ws, username_client))
     
     # Remove disconnected clients
@@ -77,44 +84,64 @@ async def broadcast_json(obj, exclude_ws=None):
         clients.discard(client)
 
 async def register(request):
-    data = await request.json()
-    username = data.get("username", "").strip()
-    password = data.get("password", "")
-    if not username or not password:
-        return web.json_response({"ok": False, "error": "Chưa nhập username/password"})
-    
-    conn = get_conn()
-    cur = conn.cursor()
     try:
-        cur.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)",
-                    (username, hash_password(password)))
-        conn.commit()
-        conn.close()
-        return web.json_response({"ok": True})
-    except sqlite3.IntegrityError:
-        conn.close()
-        return web.json_response({"ok": False, "error": "Username đã tồn tại"})
+        data = await request.json()
+        username = data.get("username", "").strip()
+        password = data.get("password", "")
+        
+        if not username or not password:
+            return web.json_response({"ok": False, "error": "Chưa nhập username/password"})
+        
+        if len(username) < 3:
+            return web.json_response({"ok": False, "error": "Username phải có ít nhất 3 ký tự"})
+        
+        if len(password) < 6:
+            return web.json_response({"ok": False, "error": "Password phải có ít nhất 6 ký tự"})
+        
+        conn = get_conn()
+        cur = conn.cursor()
+        try:
+            cur.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)",
+                        (username, hash_password(password)))
+            conn.commit()
+            print(f"New user registered: {username}")
+            return web.json_response({"ok": True})
+        except sqlite3.IntegrityError:
+            return web.json_response({"ok": False, "error": "Username đã tồn tại"})
+        finally:
+            conn.close()
+            
+    except Exception as e:
+        print(f"Register error: {e}")
+        return web.json_response({"ok": False, "error": "Lỗi server"})
 
 async def login(request):
-    data = await request.json()
-    username = data.get("username", "").strip()
-    password = data.get("password", "")
-    
-    if not username or not password:
-        return web.json_response({"ok": False, "error": "Chưa nhập username/password"})
-    
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute("SELECT password_hash FROM users WHERE username = ?", (username,))
-    row = cur.fetchone()
-    conn.close()
-    
-    if not row:
-        return web.json_response({"ok": False, "error": "Không tìm thấy user"})
-    if row[0] != hash_password(password):
-        return web.json_response({"ok": False, "error": "Sai password"})
-    
-    return web.json_response({"ok": True})
+    try:
+        data = await request.json()
+        username = data.get("username", "").strip()
+        password = data.get("password", "")
+        
+        if not username or not password:
+            return web.json_response({"ok": False, "error": "Chưa nhập username/password"})
+        
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT password_hash FROM users WHERE username = ?", (username,))
+        row = cur.fetchone()
+        conn.close()
+        
+        if not row:
+            return web.json_response({"ok": False, "error": "Không tìm thấy user"})
+        
+        if row[0] != hash_password(password):
+            return web.json_response({"ok": False, "error": "Sai password"})
+        
+        print(f"User logged in: {username}")
+        return web.json_response({"ok": True})
+        
+    except Exception as e:
+        print(f"Login error: {e}")
+        return web.json_response({"ok": False, "error": "Lỗi server"})
 
 async def websocket_handler(request):
     ws = web.WebSocketResponse(max_msg_size=16 * 1024 * 1024)  # 16MB max
@@ -129,6 +156,7 @@ async def websocket_handler(request):
                 try:
                     j = json.loads(msg.data)
                 except json.JSONDecodeError:
+                    print("Invalid JSON received")
                     continue
                 
                 msg_type = j.get("type")
@@ -139,8 +167,15 @@ async def websocket_handler(request):
                         # Remove old entry and add new one with username
                         clients.discard((ws, None))
                         clients.add((ws, username))
-                        await ws.send_str(json.dumps({"type": "auth_ok", "username": username}))
-                        await broadcast_json({"type": "join", "username": username}, exclude_ws=ws)
+                        await ws.send_str(json.dumps({
+                            "type": "auth_ok", 
+                            "username": username
+                        }, ensure_ascii=False))
+                        await broadcast_json({
+                            "type": "join", 
+                            "username": username
+                        }, exclude_ws=ws)
+                        print(f"User {username} connected")
 
                 elif msg_type == "text" and username:
                     text = j.get("text", "").strip()
@@ -171,12 +206,14 @@ async def websocket_handler(request):
                         "from": username or "anon",
                         "offer": j.get("offer")
                     }, exclude_ws=ws)
+                    
                 elif msg_type == "webrtc-answer":
                     await broadcast_json({
                         "type": "webrtc-answer",
                         "from": username or "anon",
                         "answer": j.get("answer")
                     }, exclude_ws=ws)
+                    
                 elif msg_type == "webrtc-ice":
                     await broadcast_json({
                         "type": "webrtc-ice",
@@ -203,12 +240,15 @@ async def websocket_handler(request):
                     declared_type = meta.get("mtype", "file")
                     
                     # Tự động nhận diện loại file
-                    if declared_type == "file" and is_image_file(filename):
-                        declared_type = "image"
+                    if declared_type == "file":
+                        if is_image_file(filename):
+                            declared_type = "image"
+                        elif is_audio_file(filename):
+                            declared_type = "voice"
 
                     # Tạo tên file an toàn
                     timestamp = int(asyncio.get_event_loop().time() * 1000)
-                    safe_filename = Path(filename).name
+                    safe_filename = "".join(c for c in Path(filename).name if c.isalnum() or c in '._-')
                     safe_name = f"{timestamp}_{safe_filename}"
                     save_path = UPLOAD_DIR / safe_name
 
@@ -233,6 +273,8 @@ async def websocket_handler(request):
                         "filename": filename
                     })
                     
+                    print(f"File uploaded: {filename} by {sender} ({declared_type})")
+                    
                 except Exception as e:
                     print(f"Error processing binary message: {e}")
 
@@ -247,11 +289,40 @@ async def websocket_handler(request):
         clients.discard((ws, None))
         if username:
             await broadcast_json({"type": "leave", "username": username})
+            print(f"User {username} disconnected")
         
         if not ws.closed:
             await ws.close()
 
     return ws
+
+async def get_message_history(request):
+    """API endpoint to get message history"""
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT sender, type, content, created_at 
+            FROM messages 
+            ORDER BY created_at DESC 
+            LIMIT 50
+        """)
+        rows = cur.fetchall()
+        conn.close()
+        
+        messages = []
+        for row in rows:
+            messages.append({
+                "sender": row[0],
+                "type": row[1], 
+                "content": row[2],
+                "created_at": row[3]
+            })
+        
+        return web.json_response({"ok": True, "messages": messages[::-1]})  # Reverse to chronological order
+    except Exception as e:
+        print(f"Get history error: {e}")
+        return web.json_response({"ok": False, "error": "Lỗi server"})
 
 async def init_app():
     """Initialize the application"""
@@ -267,6 +338,7 @@ async def init_app():
     app.router.add_post('/register', register)
     app.router.add_post('/login', login)
     app.router.add_get('/ws', websocket_handler)
+    app.router.add_get('/api/history', get_message_history)
     
     # Serve index.html at root
     async def index(request):
@@ -274,18 +346,26 @@ async def init_app():
         if index_path.exists():
             return web.FileResponse(index_path)
         else:
-            return web.Response(text="index.html not found in static directory", status=404)
+            return web.Response(text="index.html not found in static directory. Please create static/index.html", status=404)
     
     app.router.add_get('/', index)
     
     return app
 
 if __name__ == '__main__':
-    print("Initializing chat server...")
-    print(f"Upload directory: {UPLOAD_DIR}")
-    print(f"Static directory: {STATIC_DIR}")
-    print(f"Database: {DB_PATH}")
+    print("=" * 50)
+    print("🚀 INITIALIZING CHAT SERVER")
+    print("=" * 50)
+    print(f"📁 Upload directory: {UPLOAD_DIR.absolute()}")
+    print(f"📁 Static directory: {STATIC_DIR.absolute()}")
+    print(f"💾 Database: {DB_PATH.absolute()}")
     
     app = asyncio.get_event_loop().run_until_complete(init_app())
-    print("Server running at http://localhost:8080")
+    
+    print("=" * 50)
+    print("✅ SERVER READY")
+    print("🌐 Access: http://localhost:8080")
+    print("📝 Create static/index.html to get started")
+    print("=" * 50)
+    
     web.run_app(app, host='0.0.0.0', port=8080)
